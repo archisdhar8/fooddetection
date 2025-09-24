@@ -274,12 +274,16 @@ class FoodDetectionModel:
         
         print("Saving model in multiple formats...")
         
-        # 1. Save as H5 format (Keras format)
+        # 1. Save as Keras format (recommended)
+        self.model.save('models/food_detection_model.keras')
+        print("✓ Saved as Keras format: models/food_detection_model.keras")
+        
+        # Also save as H5 for compatibility
         self.model.save('models/food_detection_model.h5')
         print("✓ Saved as H5 format: models/food_detection_model.h5")
         
         # 2. Save as SavedModel format (TensorFlow format)
-        self.model.save('models/food_detection_model_savedmodel')
+        self.model.export('models/food_detection_model_savedmodel')
         print("✓ Saved as SavedModel format: models/food_detection_model_savedmodel/")
         
         # 3. Save model weights only
@@ -330,26 +334,48 @@ class FoodDetectionModel:
         
         return predicted_class, confidence
     
-    def load_model(self, model_path='models/food_detection_model.h5'):
+    def load_model(self, model_path='models/food_detection_model.keras'):
         """
         Load a pre-trained model
         """
-        if os.path.exists(model_path):
-            self.model = tf.keras.models.load_model(model_path)
-            print(f"Model loaded successfully from {model_path}")
-            
-            # Load metadata
-            metadata_path = 'models/model_metadata.pkl'
-            if os.path.exists(metadata_path):
-                import pickle
-                with open(metadata_path, 'rb') as f:
-                    metadata = pickle.load(f)
-                self.class_names = metadata['class_names']
-                self.image_size = metadata['image_size']
-                self.batch_size = metadata['batch_size']
-                print(f"Model metadata loaded. Classes: {self.class_names}")
+        # Try different model formats
+        model_paths = [
+            model_path,
+            'models/food_detection_model.keras',
+            'models/food_detection_model.h5',
+            'models/best_model.h5'
+        ]
+        
+        model_loaded = False
+        for path in model_paths:
+            if os.path.exists(path):
+                try:
+                    self.model = tf.keras.models.load_model(path)
+                    print(f"Model loaded successfully from {path}")
+                    model_loaded = True
+                    break
+                except Exception as e:
+                    print(f"Failed to load {path}: {e}")
+                    continue
+        
+        if not model_loaded:
+            raise FileNotFoundError(f"No valid model file found. Tried: {model_paths}")
+        
+        # Load metadata
+        metadata_path = 'models/model_metadata.pkl'
+        if os.path.exists(metadata_path):
+            import pickle
+            with open(metadata_path, 'rb') as f:
+                metadata = pickle.load(f)
+            self.class_names = metadata['class_names']
+            self.image_size = metadata['image_size']
+            self.batch_size = metadata['batch_size']
+            print(f"Model metadata loaded. Classes: {self.class_names}")
         else:
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+            # Fallback class names if metadata not available
+            self.class_names = ['freshapples', 'freshbanana', 'freshoranges', 
+                              'rottenapples', 'rottenbanana', 'rottenoranges']
+            print("Using default class names")
 
 
 def main():

@@ -54,7 +54,7 @@ python predict.py path/to/your/image.jpg
 ```bash
 python app_example.py
 ```
-Then open your browser to `http://localhost:5000`
+Then open your browser to `http://localhost:8080`
 
 ## 📊 Model Performance
 
@@ -103,7 +103,7 @@ python app_example.py
 # Make API calls
 import requests
 files = {'image': open('image.jpg', 'rb')}
-response = requests.post('http://localhost:5000/api/predict', files=files)
+response = requests.post('http://localhost:8080/api/predict', files=files)
 result = response.json()
 ```
 

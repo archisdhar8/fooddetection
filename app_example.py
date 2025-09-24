@@ -16,7 +16,7 @@ import base64
 app = Flask(__name__)
 
 class FoodDetectionApp:
-    def __init__(self, model_path='models/food_detection_model.h5'):
+    def __init__(self, model_path='models/food_detection_model.keras'):
         """
         Initialize the food detection app with the trained model
         """
@@ -30,28 +30,42 @@ class FoodDetectionApp:
         """
         Load the trained model and metadata
         """
-        try:
-            # Load the model
-            self.model = tf.keras.models.load_model(self.model_path)
-            print(f"Model loaded successfully from {self.model_path}")
-            
-            # Load metadata
-            metadata_path = 'models/model_metadata.pkl'
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'rb') as f:
-                    metadata = pickle.load(f)
-                self.class_names = metadata['class_names']
-                self.image_size = metadata['image_size']
-                print(f"Model metadata loaded. Classes: {self.class_names}")
-            else:
-                # Fallback class names if metadata not available
-                self.class_names = ['freshapples', 'freshbanana', 'freshoranges', 
-                                  'rottenapples', 'rottenbanana', 'rottenoranges']
-                print("Using default class names")
-                
-        except Exception as e:
-            print(f"Error loading model: {e}")
-            raise
+        # Try different model formats in order of preference
+        model_paths = [
+            self.model_path,
+            'models/food_detection_model.keras',
+            'models/food_detection_model.h5',
+            'models/best_model.h5'
+        ]
+        
+        model_loaded = False
+        for path in model_paths:
+            if os.path.exists(path):
+                try:
+                    self.model = tf.keras.models.load_model(path)
+                    print(f"✓ Model loaded successfully from {path}")
+                    model_loaded = True
+                    break
+                except Exception as e:
+                    print(f"Failed to load {path}: {e}")
+                    continue
+        
+        if not model_loaded:
+            raise FileNotFoundError(f"No valid model file found. Tried: {model_paths}")
+        
+        # Load metadata
+        metadata_path = 'models/model_metadata.pkl'
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'rb') as f:
+                metadata = pickle.load(f)
+            self.class_names = metadata['class_names']
+            self.image_size = metadata['image_size']
+            print(f"✓ Model metadata loaded. Classes: {self.class_names}")
+        else:
+            # Fallback class names if metadata not available
+            self.class_names = ['freshapples', 'freshbanana', 'freshoranges', 
+                              'rottenapples', 'rottenbanana', 'rottenoranges']
+            print("⚠ Using default class names")
     
     def preprocess_image(self, image_file):
         """
@@ -209,5 +223,5 @@ def get_classes():
 
 if __name__ == '__main__':
     print("Starting Food Detection App...")
-    print("Open your browser and go to: http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("Open your browser and go to: http://localhost:8080")
+    app.run(debug=True, host='0.0.0.0', port=8080)
